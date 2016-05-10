@@ -118,8 +118,12 @@ class Deploy
     {
         $this->_dataObj = json_decode(file_get_contents('php://input'));
     }
+    public function setDeploymentData(stdClass $data)
+    {
+        $this->_dataObj = $data;
+    }
 
-    private function findDeployment()
+    private function _findDeployment()
     {
         //::Set deployment key to null for the check later on.
     $deploymentKey = null;
@@ -129,13 +133,53 @@ class Deploy
     foreach ($this->_configObj->deployments as $key => $current) {
         if ($this->_dataObj->repository->url == $current->url || $this->_dataObj->repository->git_http_url == $current->url || $this->_dataObj->repository->git_ssh_url == $current->url) {
             $this->_selectedConfig = $_dataObj[$key];
-            break;
+
+            return true;
         }
     }
+
+        return false;
     }
 
-    private function transfer() {
+    private function _transfer()
+    {
+    }
 
+    private function _setupConnection() {
 
+      $ftpResource = ftp_connect($this->_selectedConfig->host);
+      ftp_login($ftpResource, $this->_selectedConfig->user, $this->_selectedConfig->password);
+
+    }
+
+    public function run()
+    {
+      if (  $this->_findDeployment() ) {
+
+            if (count($this->_dataObj->commits) > 0) {
+                foreach ($this->_dataObj->commits as $commit) {
+                    var_dump($commit);
+              //::Added files and modified files. Seems like the same thing.
+              $copy = array_merge($commit->added, $commit->modified);
+
+                    if (count($copy) > 0) {
+                        foreach ($copy as $file) {
+                            $contents = file_get_contents($projectObj->web_url.'/'.$commit->id.'/'.$file);
+                            $tmpfile = fopen('php://memory', 'r+');
+                            fputs($tmpfile, $contents);
+                            rewind($tmpfile);
+                            $result = ftp_fput($ftpResource, $deploymentConfig->path.$file, $tmpfile, FTP_BINARY);
+
+                            if ($result) {
+                                echo 'transfered file '.$file;
+                            }
+                        }
+                    }
+
+              //::Remove files.
+                }
+            }
+
+      }
     }
 }
