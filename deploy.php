@@ -87,11 +87,14 @@ class Deploy
     private $_dataObj;
     private $_configObj;
 
-  //::If found stores the selected config
-  private $_selectedConfig = null;
+    //::If found stores the selected config
+    private $_selectedConfig = null;
 
-    public function __construct()
+    private $_connection;
+
+    public function __construct(ConnectionInterface $connection = null)
     {
+        $this->_connection = $connection;
     }
 
     public function getConfiguration()
@@ -159,8 +162,9 @@ class Deploy
             if (count($this->_dataObj->commits) > 0) {
                 foreach ($this->_dataObj->commits as $commit) {
                     var_dump($commit);
-              //::Added files and modified files. Seems like the same thing.
-              $copy = array_merge($commit->added, $commit->modified);
+
+                    //::Added files and modified files. Seems like the same thing.
+                    $copy = array_merge($commit->added, $commit->modified);
 
                     if (count($copy) > 0) {
                         foreach ($copy as $file) {
